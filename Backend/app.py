@@ -19,15 +19,17 @@ def next_spo2(s, f, alpha):
     s_next = s + alpha * f
     return max(SPO2_MIN, min(SPO2_MAX, round(s_next)))
 
-def step_cost(spo2, target, f, prev_f, lam):
+
+
+def step_cost(spo2, target, f, prev_f, lam, sMin, sMax):
     deviation = (spo2 - target) ** 2
 
+    # ✅ safety penalty based on chosen safe range
     penalty = 0
-    if spo2 < 90 or spo2 > 98:
-        penalty = 100  
+    if spo2 < sMin or spo2 > sMax:
+        penalty = 1000
 
     smoothness = 0 if prev_f is None else lam * abs(f - prev_f)
-
     return deviation + smoothness + penalty
 
 def run_dp_engine(s1, target, T, lam, alpha):
@@ -82,12 +84,15 @@ def run_dp():
     data = request.json
 
     caseType = data.get("caseType")
-    s1 = data.get("s1")
-    target = data.get("target")
-    sMin = data.get("sMin")
-    sMax = data.get("sMax")
-    T = data.get("T")
-    lam = data.get("lambda")
+    s1 = int(data.get("s1"))
+    target = int(data.get("target"))
+    sMin = int(data.get("sMin"))
+    sMax = int(data.get("sMax"))
+    T = int(data.get("T"))
+    lam = float(data.get("lambda"))
+
+
+    # --- SAFE BACKEND LOGIC (INTERMEDIATE STEP) ---
     alpha = ALPHA_BY_CASE.get(caseType, 0.4)
 
     flows, spo2, dp_cost, states, best_rows = run_dp_engine_with_table(s1, target, T, lam, alpha, sMin, sMax)
@@ -138,10 +143,11 @@ def run_dp_engine_with_table(s1, target, T, lam, alpha, sMin, sMax):
                 s_new = next_spo2(s_prev, f, alpha)
                 r_new = states.index(s_new)
 
-                c = step_cost(s_new, target, f, prev_f, lam)
+                # base cost
+                c = step_cost(s_new, target, f, prev_f, lam, sMin, sMax)
 
-                if s_new < sMin or s_new > sMax:
-                    c += 1000
+
+            
 
                 new_cost = dp_cost[r_prev][t-1] + c
 
