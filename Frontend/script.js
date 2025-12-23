@@ -107,7 +107,7 @@ function setStatus(msg, isError = false) {
 
 function clearTable() {
   const tbody = document.querySelector("#planTable tbody");
-  tbody.innerHTML = "";
+  if (tbody) tbody.innerHTML = "";
 }
 
 function destroyCharts() {
@@ -173,30 +173,30 @@ async function runSimulation() {
   }
 }
 
-// function renderTable(spo2, flows) {
-//   const tbody = document.querySelector("#planTable tbody");
-//   tbody.innerHTML = "";
+function renderTable(spo2, flows) {
+  const tbody = document.querySelector("#planTable tbody");
+  tbody.innerHTML = "";
 
-//   // spo2 length = T
-//   // flows length = T-1 (action from t -> t+1)
-//   for (let t = 0; t < spo2.length; t++) {
-//     const tr = document.createElement("tr");
+  // spo2 length = T
+  // flows length = T-1 (action from t -> t+1)
+  for (let t = 0; t < spo2.length; t++) {
+    const tr = document.createElement("tr");
 
-//     const tdT = document.createElement("td");
-//     tdT.textContent = t;
+    const tdT = document.createElement("td");
+    tdT.textContent = t;
 
-//     const tdF = document.createElement("td");
-//     tdF.textContent = (t < flows.length) ? flows[t] : "—"; // no action at last state
+    const tdF = document.createElement("td");
+    tdF.textContent = (t < flows.length) ? flows[t] : "—"; // no action at last state
 
-//     const tdS = document.createElement("td");
-//     tdS.textContent = spo2[t];
+    const tdS = document.createElement("td");
+    tdS.textContent = spo2[t];
 
-//     tr.appendChild(tdT);
-//     tr.appendChild(tdF);
-//     tr.appendChild(tdS);
-//     tbody.appendChild(tr);
-//   }
-// }
+    tr.appendChild(tdT);
+    tr.appendChild(tdF);
+    tr.appendChild(tdS);
+    tbody.appendChild(tr);
+  }
+}
 
 function renderDPTable(dp, T) {
   const table = document.getElementById("dpTable");
