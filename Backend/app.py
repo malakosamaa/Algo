@@ -158,9 +158,7 @@ def run_dp_engine_with_table(s1, target, T, lam, alpha, sMin, sMax):
                 c = step_cost(s_new, target, f, prev_f, lam, sMin, sMax)
 
 
-                # optional safety penalty (recommended)
-                if s_new < sMin or s_new > sMax:
-                    c += 1000
+            
 
                 new_cost = dp_cost[r_prev][t-1] + c
 

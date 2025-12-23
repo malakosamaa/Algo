@@ -17,14 +17,12 @@ body{
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 
-  /* Background image
-  background-image: url("assets/bg.webp");
-  background-repeat: repeat;        /* repeats the pattern */
-  /* background-size: 300px 300px;     controls pattern size */
-  /* background-attachment: fixed; */ 
+  /* Background image */
+  background-image: url("za zurse.webp");
+  background-repeat: repeat;        
+  background-size: 300px 300px;     
+  background-attachment: fixed; 
 
-  /* overlay color to keep text readable */
-  background-color: #f5f7fb;
 }
 
 .app{
