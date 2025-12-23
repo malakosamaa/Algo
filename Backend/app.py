@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # allow frontend requests
+CORS(app)
 
 FLOW_LEVELS = [0, 1, 2, 3, 4, 5]
 
@@ -18,8 +18,6 @@ SPO2_MAX = 100
 def next_spo2(s, f, alpha):
     s_next = s + alpha * f
     return max(SPO2_MIN, min(SPO2_MAX, round(s_next)))
-
-
 
 def step_cost(spo2, target, f, prev_f, lam):
     deviation = (spo2 - target) ** 2
@@ -53,7 +51,6 @@ def run_dp_engine(s1, target, T, lam, alpha):
                     dp[t][s_new] = cost
                     parent[t][s_new] = (s_prev, f)
 
-    # Backtracking
     last_state = min(dp[T-1], key=dp[T-1].get)
     flows = []
     spo2 = [last_state]
@@ -69,14 +66,12 @@ def run_dp_engine(s1, target, T, lam, alpha):
     return flows, spo2
 
 def compute_metrics(spo2, flows, target, sMin, sMax):
-    # Total cost: deviation from target
+
     cost = sum((s - target) ** 2 for s in spo2)
 
-    # Time in safe range
     in_range = sum(1 for s in spo2 if sMin <= s <= sMax)
     time_in_range_percent = 100 * in_range / len(spo2)
-
-    # Number of oxygen flow changes
+    
     num_flow_changes = sum(
         1 for i in range(1, len(flows)) if flows[i] != flows[i-1]
     )
@@ -86,7 +81,6 @@ def compute_metrics(spo2, flows, target, sMin, sMax):
 def run_dp():
     data = request.json
 
-    # --- READ INPUTS (DO NOTHING WITH THEM YET) ---
     caseType = data.get("caseType")
     s1 = data.get("s1")
     target = data.get("target")
@@ -94,14 +88,7 @@ def run_dp():
     sMax = data.get("sMax")
     T = data.get("T")
     lam = data.get("lambda")
-
-    # --- SAFE BACKEND LOGIC (INTERMEDIATE STEP) ---
     alpha = ALPHA_BY_CASE.get(caseType, 0.4)
-
-    # flows, spo2 = run_dp_engine(
-    # s1, target, T, lam, alpha
-    # )
-   
 
     flows, spo2, dp_cost, states, best_rows = run_dp_engine_with_table(s1, target, T, lam, alpha, sMin, sMax)
 
@@ -116,12 +103,11 @@ def run_dp():
         "timeInRangePercent": time_in_range,
         "numFlowChanges": num_changes,
         "dp": {
-            "states": states,            # rows
-            "costTable": dp_cost,        # 2D matrix
-            "bestPathRows": best_rows    # highlight path
+            "states": states,            
+            "costTable": dp_cost,        
+            "bestPathRows": best_rows    
         }
     }
-
 
     return jsonify(response)
 
@@ -134,9 +120,8 @@ def run_dp_engine_with_table(s1, target, T, lam, alpha, sMin, sMax):
     S = len(states)
     INF = 10**9
 
-    # dp_cost[row][t]
     dp_cost = [[INF] * T for _ in range(S)]
-    parent = [[None] * T for _ in range(S)]  # (prev_row, flow)
+    parent = [[None] * T for _ in range(S)]  
 
     s1_row = states.index(s1)
     dp_cost[s1_row][0] = 0
@@ -153,10 +138,8 @@ def run_dp_engine_with_table(s1, target, T, lam, alpha, sMin, sMax):
                 s_new = next_spo2(s_prev, f, alpha)
                 r_new = states.index(s_new)
 
-                # base cost
                 c = step_cost(s_new, target, f, prev_f, lam)
 
-                # optional safety penalty (recommended)
                 if s_new < sMin or s_new > sMax:
                     c += 1000
 
@@ -166,10 +149,8 @@ def run_dp_engine_with_table(s1, target, T, lam, alpha, sMin, sMax):
                     dp_cost[r_new][t] = new_cost
                     parent[r_new][t] = (r_prev, f)
 
-    # choose best final row
     last_row = min(range(S), key=lambda r: dp_cost[r][T-1])
 
-    # backtrack
     best_rows = [last_row]
     flows = []
     spo2 = [states[last_row]]

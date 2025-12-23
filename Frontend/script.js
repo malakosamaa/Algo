@@ -1,32 +1,3 @@
-// function runSimulation() {
-
-//   const data = {
-//     caseType: document.getElementById("caseType").value,
-//     s1: Number(document.getElementById("s1").value),
-//     target: Number(document.getElementById("target").value),
-//     sMin: Number(document.getElementById("sMin").value),
-//     sMax: Number(document.getElementById("sMax").value),
-//     T: Number(document.getElementById("T").value),
-//     lambda: Number(document.getElementById("lambda").value)
-//   };
-
-//   fetch("http://127.0.0.1:5000/run-dp", {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json"
-//     },
-//     body: JSON.stringify(data)
-//   })
-//   .then(response => response.json())
-//   .then(result => {
-//     document.getElementById("output").textContent =
-//       JSON.stringify(result, null, 2);
-//   })
-//   .catch(error => {
-//     console.error("Error:", error);
-//   });
-// }
-
 console.log("script.js loaded ✅");
 
 const API_URL = "http://127.0.0.1:5000/run-dp";
@@ -135,34 +106,19 @@ async function runSimulation() {
 
     const result = await res.json();
 
-    // Debug JSON
     $("output").textContent = JSON.stringify(result, null, 2);
 
-    // Update KPIs
     $("kpiCost").textContent = result.cost?.toFixed ? result.cost.toFixed(2) : result.cost;
     $("kpiRange").textContent = `${Number(result.timeInRangePercent).toFixed(1)}%`;
     $("kpiChanges").textContent = result.numFlowChanges;
 
-    // Align lengths (DP often outputs flows length = T-1)
     let spo2 = result.spo2 || [];
     let flows = result.flows || [];
 
-    // Make flows length match spo2 length for charts/table
-    // if (flows.length === spo2.length - 1) {
-    //   flows = [flows[0] ?? 0, ...flows];
-    // } else if (flows.length < spo2.length) {
-    //   // pad with last known flow
-    //   const last = flows.length ? flows[flows.length - 1] : 0;
-    //   while (flows.length < spo2.length) flows.push(last);
-    // } else if (flows.length > spo2.length) {
-    //   flows = flows.slice(0, spo2.length);
-    // }
-
-    // Render table + charts
     renderTable(spo2, flows);
     renderCharts(spo2, flows, data.target, data.sMin, data.sMax);
     if (result.dp) {
-  // assuming backend sends dp object with states, costTable, bestPathRows
+  
       renderDPTable(result.dp, data.T);
 }
 
@@ -172,31 +128,6 @@ async function runSimulation() {
     setStatus("Error calling backend. Check console.", true);
   }
 }
-
-// function renderTable(spo2, flows) {
-//   const tbody = document.querySelector("#planTable tbody");
-//   tbody.innerHTML = "";
-
-//   // spo2 length = T
-//   // flows length = T-1 (action from t -> t+1)
-//   for (let t = 0; t < spo2.length; t++) {
-//     const tr = document.createElement("tr");
-
-//     const tdT = document.createElement("td");
-//     tdT.textContent = t;
-
-//     const tdF = document.createElement("td");
-//     tdF.textContent = (t < flows.length) ? flows[t] : "—"; // no action at last state
-
-//     const tdS = document.createElement("td");
-//     tdS.textContent = spo2[t];
-
-//     tr.appendChild(tdT);
-//     tr.appendChild(tdF);
-//     tr.appendChild(tdS);
-//     tbody.appendChild(tr);
-//   }
-// }
 
 function renderDPTable(dp, T) {
   const table = document.getElementById("dpTable");
@@ -210,7 +141,6 @@ function renderDPTable(dp, T) {
   const costTable = dp.costTable;
   const bestPathRows = dp.bestPathRows;
 
-  // header row
   const trH = document.createElement("tr");
   const th0 = document.createElement("th");
   th0.textContent = "SpO₂ \\ t";
@@ -223,7 +153,6 @@ function renderDPTable(dp, T) {
   }
   thead.appendChild(trH);
 
-  // body rows (each SpO2 state)
   for (let r = 0; r < states.length; r++) {
     const tr = document.createElement("tr");
 
@@ -237,7 +166,6 @@ function renderDPTable(dp, T) {
 
       td.textContent = (val >= 1e9) ? "∞" : Math.round(val);
 
-      // highlight best path cell
       if (bestPathRows[t] === r) {
         td.classList.add("bestCell");
       }
@@ -253,13 +181,10 @@ function renderDPTable(dp, T) {
 function renderCharts(spo2, flows, target, sMin, sMax) {
   destroyCharts();
 
-  // labels for states: 0..T-1
   const labelsSpo2 = spo2.map((_, i) => i);
 
-  // labels for actions: 0..T-2
   const labelsFlow = flows.map((_, i) => i);
 
-  // SpO2 chart
   spo2ChartInstance = new Chart($("spo2Chart"), {
     type: "line",
     data: {
@@ -278,7 +203,6 @@ function renderCharts(spo2, flows, target, sMin, sMax) {
     },
   });
 
-  // Flow chart (actions)
   flowChartInstance = new Chart($("flowChart"), {
     type: "line",
     data: {
