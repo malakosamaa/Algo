@@ -1,124 +1,136 @@
-// function runSimulation() {
-
-//   const data = {
-//     caseType: document.getElementById("caseType").value,
-//     s1: Number(document.getElementById("s1").value),
-//     target: Number(document.getElementById("target").value),
-//     sMin: Number(document.getElementById("sMin").value),
-//     sMax: Number(document.getElementById("sMax").value),
-//     T: Number(document.getElementById("T").value),
-//     lambda: Number(document.getElementById("lambda").value)
-//   };
-
-//   fetch("http://127.0.0.1:5000/run-dp", {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json"
-//     },
-//     body: JSON.stringify(data)
-//   })
-//   .then(response => response.json())
-//   .then(result => {
-//     document.getElementById("output").textContent =
-//       JSON.stringify(result, null, 2);
-//   })
-//   .catch(error => {
-//     console.error("Error:", error);
-//   });
-// }
-
-console.log("script.js loaded ✅");
+/* Oxygen Therapy Simulator - frontend */
 
 const API_URL = "http://127.0.0.1:5000/run-dp";
-const $ = (id) => document.getElementById(id);
 
-let spo2ChartInstance = null;
-let flowChartInstance = null;
+const el = (id) => document.getElementById(id);
+const qs = (sel) => document.querySelector(sel);
 
-window.addEventListener("DOMContentLoaded", () => {
-  // Lambda live label
-  const lambda = $("lambda");
-  const lambdaVal = $("lambdaVal");
-  lambdaVal.textContent = lambda.value;
-  lambda.addEventListener("input", () => (lambdaVal.textContent = lambda.value));
+let spo2Chart = null;
+let flowChart = null;
 
-  // Buttons
-  $("runBtn").addEventListener("click", runSimulation);
-  $("resetBtn").addEventListener("click", resetAll);
+const PRESETS = {
+  Adult: { caseType: "Adult", s1: 88, target: 94, sMin: 92, sMax: 96, T: 30, lambda: 2 },
+  COPD: { caseType: "COPD", s1: 86, target: 90, sMin: 88, sMax: 92, T: 30, lambda: 3 },
+  Pediatric: { caseType: "Pediatric", s1: 90, target: 95, sMin: 93, sMax: 97, T: 30, lambda: 1 },
+};
 
-  $("presetAdult").addEventListener("click", () =>
-    applyPreset({ caseType: "Adult", s1: 88, target: 94, sMin: 92, sMax: 96, T: 30, lambda: 2 })
-  );
-  $("presetCOPD").addEventListener("click", () =>
-    applyPreset({ caseType: "COPD", s1: 86, target: 90, sMin: 88, sMax: 92, T: 30, lambda: 3 })
-  );
-  $("presetPeds").addEventListener("click", () =>
-    applyPreset({ caseType: "Pediatric", s1: 90, target: 95, sMin: 93, sMax: 97, T: 30, lambda: 1 })
-  );
-
-  // Start with Adult preset (DO NOT set zeros)
-  applyPreset({ caseType: "Adult", s1: 88, target: 94, sMin: 92, sMax: 96, T: 30, lambda: 2 });
+document.addEventListener("DOMContentLoaded", () => {
+  wireUI();
+  applyPreset(PRESETS.Adult);
 });
 
-function getInputs() {
+function wireUI() {
+  const lambda = el("lambda");
+  const lambdaVal = el("lambdaVal");
+
+  lambdaVal.textContent = lambda.value;
+  lambda.addEventListener("input", () => {
+    lambdaVal.textContent = lambda.value;
+  });
+
+  el("runBtn").addEventListener("click", runSimulation);
+  el("resetBtn").addEventListener("click", resetAll);
+
+  el("presetAdult").addEventListener("click", () => applyPreset(PRESETS.Adult));
+  el("presetCOPD").addEventListener("click", () => applyPreset(PRESETS.COPD));
+  el("presetPeds").addEventListener("click", () => applyPreset(PRESETS.Pediatric));
+}
+
+function readInputs() {
   return {
-    caseType: $("caseType").value,
-    s1: Number($("s1").value),
-    target: Number($("target").value),
-    sMin: Number($("sMin").value),
-    sMax: Number($("sMax").value),
-    T: Number($("T").value),
-    lambda: Number($("lambda").value),
+    caseType: el("caseType").value,
+    s1: Number(el("s1").value),
+    target: Number(el("target").value),
+    sMin: Number(el("sMin").value),
+    sMax: Number(el("sMax").value),
+    T: Number(el("T").value),
+    lambda: Number(el("lambda").value),
   };
 }
 
 function applyPreset(p) {
-  $("caseType").value = p.caseType;
-  $("s1").value = p.s1;
-  $("target").value = p.target;
-  $("sMin").value = p.sMin;
-  $("sMax").value = p.sMax;
-  $("T").value = p.T;
-  $("lambda").value = p.lambda;
-  $("lambdaVal").textContent = p.lambda;
+  el("caseType").value = p.caseType;
+  el("s1").value = p.s1;
+  el("target").value = p.target;
+  el("sMin").value = p.sMin;
+  el("sMax").value = p.sMax;
+  el("T").value = p.T;
+  el("lambda").value = p.lambda;
+  el("lambdaVal").textContent = String(p.lambda);
   setStatus("");
 }
 
 function resetAll() {
-  // reset to a valid preset (not zeros)
-  applyPreset({ caseType: "Adult", s1: 88, target: 94, sMin: 92, sMax: 96, T: 30, lambda: 2 });
+  // Reset inputs to zero (as requested)
+  el("caseType").value = "Adult";
+  el("s1").value = 0;
+  el("target").value = 0;
+  el("sMin").value = 0;
+  el("sMax").value = 0;
+  el("T").value = 0;
+  el("lambda").value = 0;
+  el("lambdaVal").textContent = "0";
 
-  $("output").textContent = "";
-  $("kpiCost").textContent = "—";
-  $("kpiRange").textContent = "—";
-  $("kpiChanges").textContent = "—";
+  // Clear outputs
+  setText("kpiCost", "—");
+  setText("kpiRange", "—");
+  setText("kpiChanges", "—");
 
-  clearTable();
+  clearPlanTable();
+  clearDpTable();
   destroyCharts();
   setStatus("");
 }
 
 function setStatus(msg, isError = false) {
-  const el = $("status");
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = isError ? "#b00020" : "#0a7a2f";
+  const box = el("status");
+  if (!box) return;
+  box.textContent = msg;
+  box.style.color = isError ? "#b00020" : "#0a7a2f";
 }
 
-function clearTable() {
-  const tbody = document.querySelector("#planTable tbody");
+function setText(id, value) {
+  const node = el(id);
+  if (node) node.textContent = value;
+}
+
+function clearPlanTable() {
+  const tbody = qs("#planTable tbody");
+  if (tbody) tbody.innerHTML = "";
+}
+
+function clearDpTable() {
+  const thead = qs("#dpTable thead");
+  const tbody = qs("#dpTable tbody");
+  if (thead) thead.innerHTML = "";
   if (tbody) tbody.innerHTML = "";
 }
 
 function destroyCharts() {
-  if (spo2ChartInstance) spo2ChartInstance.destroy();
-  if (flowChartInstance) flowChartInstance.destroy();
-  spo2ChartInstance = null;
-  flowChartInstance = null;
+  if (spo2Chart) spo2Chart.destroy();
+  if (flowChart) flowChart.destroy();
+  spo2Chart = null;
+  flowChart = null;
+}
+
+function validateInputs(d) {
+  const requiredPositive = ["s1", "target", "sMin", "sMax", "T"];
+  for (const k of requiredPositive) {
+    if (!Number.isFinite(d[k]) || d[k] <= 0) return "No zero inputs ❌";
+  }
+  if (d.sMin >= d.sMax) return "Safe Min must be < Safe Max ❌";
+  return null;
 }
 
 async function runSimulation() {
-  const data = getInputs();
+  const data = readInputs();
+
+  const msg = validateInputs(data);
+  if (msg) {
+    setStatus(msg, true);
+    return;
+  }
+
   setStatus("Running...", false);
 
   try {
@@ -135,112 +147,90 @@ async function runSimulation() {
 
     const result = await res.json();
 
-    // Debug JSON
-    $("output").textContent = JSON.stringify(result, null, 2);
+    setText("kpiCost", formatCost(result.cost));
+    setText("kpiRange", `${Number(result.timeInRangePercent).toFixed(1)}%`);
+    setText("kpiChanges", String(result.numFlowChanges));
 
-    // Update KPIs
-    $("kpiCost").textContent = result.cost?.toFixed ? result.cost.toFixed(2) : result.cost;
-    $("kpiRange").textContent = `${Number(result.timeInRangePercent).toFixed(1)}%`;
-    $("kpiChanges").textContent = result.numFlowChanges;
+    const spo2 = Array.isArray(result.spo2) ? result.spo2 : [];
+    const flows = Array.isArray(result.flows) ? result.flows : [];
 
-    // Align lengths (DP often outputs flows length = T-1)
-    let spo2 = result.spo2 || [];
-    let flows = result.flows || [];
-
-    // Make flows length match spo2 length for charts/table
-    // if (flows.length === spo2.length - 1) {
-    //   flows = [flows[0] ?? 0, ...flows];
-    // } else if (flows.length < spo2.length) {
-    //   // pad with last known flow
-    //   const last = flows.length ? flows[flows.length - 1] : 0;
-    //   while (flows.length < spo2.length) flows.push(last);
-    // } else if (flows.length > spo2.length) {
-    //   flows = flows.slice(0, spo2.length);
-    // }
-
-    // Render table + charts
-    renderTable(spo2, flows);
+    renderPlanTable(spo2, flows);
     renderCharts(spo2, flows, data.target, data.sMin, data.sMax);
-    if (result.dp) {
-  // assuming backend sends dp object with states, costTable, bestPathRows
-      renderDPTable(result.dp, data.T);
-}
+
+    if (result.dp) renderDpTable(result.dp, data.T);
 
     setStatus("Done ✅", false);
-  } catch (err) {
-    console.error(err);
-    setStatus("Error calling backend. Check console.", true);
+  } catch (e) {
+    console.error(e);
+    setStatus("Could not reach backend (is Flask running?)", true);
   }
 }
 
-function renderTable(spo2, flows) {
-  const tbody = document.querySelector("#planTable tbody");
+function formatCost(cost) {
+  if (typeof cost === "number" && Number.isFinite(cost)) return cost.toFixed(2);
+  return String(cost ?? "—");
+}
+
+function renderPlanTable(spo2, flows) {
+  const tbody = qs("#planTable tbody");
+  if (!tbody) return;
+
   tbody.innerHTML = "";
 
-  // spo2 length = T
-  // flows length = T-1 (action from t -> t+1)
   for (let t = 0; t < spo2.length; t++) {
     const tr = document.createElement("tr");
 
     const tdT = document.createElement("td");
-    tdT.textContent = t;
+    tdT.textContent = String(t);
 
     const tdF = document.createElement("td");
-    tdF.textContent = (t < flows.length) ? flows[t] : "—"; // no action at last state
+    tdF.textContent = t < flows.length ? String(flows[t]) : "—";
 
     const tdS = document.createElement("td");
-    tdS.textContent = spo2[t];
+    tdS.textContent = String(spo2[t]);
 
-    tr.appendChild(tdT);
-    tr.appendChild(tdF);
-    tr.appendChild(tdS);
+    tr.append(tdT, tdF, tdS);
     tbody.appendChild(tr);
   }
 }
 
-function renderDPTable(dp, T) {
-  const table = document.getElementById("dpTable");
-  const thead = table.querySelector("thead");
-  const tbody = table.querySelector("tbody");
+function renderDpTable(dp, T) {
+  const thead = qs("#dpTable thead");
+  const tbody = qs("#dpTable tbody");
+  if (!thead || !tbody) return;
+
+  const states = dp.states || [];
+  const costTable = dp.costTable || [];
+  const bestPathRows = dp.bestPathRows || [];
 
   thead.innerHTML = "";
   tbody.innerHTML = "";
 
-  const states = dp.states;
-  const costTable = dp.costTable;
-  const bestPathRows = dp.bestPathRows;
-
-  // header row
-  const trH = document.createElement("tr");
+  const trHead = document.createElement("tr");
   const th0 = document.createElement("th");
   th0.textContent = "SpO₂ \\ t";
-  trH.appendChild(th0);
+  trHead.appendChild(th0);
 
   for (let t = 0; t < T; t++) {
     const th = document.createElement("th");
-    th.textContent = t;
-    trH.appendChild(th);
+    th.textContent = String(t);
+    trHead.appendChild(th);
   }
-  thead.appendChild(trH);
+  thead.appendChild(trHead);
 
-  // body rows (each SpO2 state)
   for (let r = 0; r < states.length; r++) {
     const tr = document.createElement("tr");
 
     const th = document.createElement("th");
-    th.textContent = states[r];
+    th.textContent = String(states[r]);
     tr.appendChild(th);
 
     for (let t = 0; t < T; t++) {
       const td = document.createElement("td");
-      const val = costTable[r][t];
+      const v = costTable?.[r]?.[t];
 
-      td.textContent = (val >= 1e9) ? "∞" : Math.round(val);
-
-      // highlight best path cell
-      if (bestPathRows[t] === r) {
-        td.classList.add("bestCell");
-      }
+      td.textContent = v == null || v >= 1e9 ? "∞" : String(Math.round(v));
+      if (bestPathRows[t] === r) td.classList.add("bestCell");
 
       tr.appendChild(td);
     }
@@ -249,26 +239,21 @@ function renderDPTable(dp, T) {
   }
 }
 
-
 function renderCharts(spo2, flows, target, sMin, sMax) {
   destroyCharts();
 
-  // labels for states: 0..T-1
-  const labelsSpo2 = spo2.map((_, i) => i);
+  const xSpo2 = spo2.map((_, i) => i);
+  const xFlow = flows.map((_, i) => i);
 
-  // labels for actions: 0..T-2
-  const labelsFlow = flows.map((_, i) => i);
-
-  // SpO2 chart
-  spo2ChartInstance = new Chart($("spo2Chart"), {
+  spo2Chart = new Chart(el("spo2Chart"), {
     type: "line",
     data: {
-      labels: labelsSpo2,
+      labels: xSpo2,
       datasets: [
         { label: "SpO₂", data: spo2, tension: 0.25 },
-        { label: "Target", data: labelsSpo2.map(() => target), borderDash: [6, 6], tension: 0 },
-        { label: "Safe Min", data: labelsSpo2.map(() => sMin), borderDash: [3, 6], tension: 0 },
-        { label: "Safe Max", data: labelsSpo2.map(() => sMax), borderDash: [3, 6], tension: 0 },
+        { label: "Target", data: xSpo2.map(() => target), borderDash: [6, 6], tension: 0 },
+        { label: "Safe Min", data: xSpo2.map(() => sMin), borderDash: [3, 6], tension: 0 },
+        { label: "Safe Max", data: xSpo2.map(() => sMax), borderDash: [3, 6], tension: 0 },
       ],
     },
     options: {
@@ -278,11 +263,10 @@ function renderCharts(spo2, flows, target, sMin, sMax) {
     },
   });
 
-  // Flow chart (actions)
-  flowChartInstance = new Chart($("flowChart"), {
+  flowChart = new Chart(el("flowChart"), {
     type: "line",
     data: {
-      labels: labelsFlow,
+      labels: xFlow,
       datasets: [{ label: "O₂ Flow (L/min)", data: flows, stepped: true }],
     },
     options: {
@@ -291,5 +275,4 @@ function renderCharts(spo2, flows, target, sMin, sMax) {
       scales: { y: { min: 0, max: 5 } },
     },
   });
-
 }
