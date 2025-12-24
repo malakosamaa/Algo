@@ -9,9 +9,9 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# -----------------------------
+
 # Constants / configuration
-# -----------------------------
+
 
 FLOW_LEVELS: List[int] = [0, 1, 2, 3, 4, 5]
 
@@ -26,9 +26,9 @@ SPO2_MAX = 100
 INF = 10**9
 
 
-# -----------------------------
+
 # Helpers
-# -----------------------------
+
 
 def clamp(x: float, lo: int, hi: int) -> int:
     return max(lo, min(hi, int(round(x))))
@@ -123,9 +123,9 @@ def dp_with_table(s1: int, target: int, T: int, lam: float, alpha: float,
     return flows, spo2_path, cost_table, states, best_rows
 
 
-# -----------------------------
+
 # Input validation
-# -----------------------------
+
 
 @dataclass
 class Payload:
@@ -167,9 +167,9 @@ def parse_payload(data: Dict[str, Any]) -> Payload:
     return Payload(case_type, s1, target, s_min, s_max, T, lam)
 
 
-# -----------------------------
+
 # Routes
-# -----------------------------
+
 
 @app.get("/")
 def home():

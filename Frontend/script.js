@@ -7,7 +7,7 @@ const qs = (sel) => document.querySelector(sel);
 
 let spo2Chart = null;
 let flowChart = null;
-
+//inputs types and the 3 preset test cases we use 
 const PRESETS = {
   Adult: { caseType: "Adult", s1: 88, target: 94, sMin: 92, sMax: 96, T: 30, lambda: 2 },
   COPD: { caseType: "COPD", s1: 86, target: 90, sMin: 88, sMax: 92, T: 30, lambda: 3 },
@@ -27,7 +27,7 @@ function wireUI() {
   lambda.addEventListener("input", () => {
     lambdaVal.textContent = lambda.value;
   });
-
+//5 buttons 
   el("runBtn").addEventListener("click", runSimulation);
   el("resetBtn").addEventListener("click", resetAll);
 
@@ -47,7 +47,7 @@ function readInputs() {
     lambda: Number(el("lambda").value),
   };
 }
-
+//preset functions for our 3 test cases where it applies numbers automatically 
 function applyPreset(p) {
   el("caseType").value = p.caseType;
   el("s1").value = p.s1;
@@ -61,7 +61,7 @@ function applyPreset(p) {
 }
 
 function resetAll() {
-  // Reset inputs to zero (as requested)
+  // Reset inputs to zero 
   el("caseType").value = "Adult";
   el("s1").value = 0;
   el("target").value = 0;
@@ -112,7 +112,7 @@ function destroyCharts() {
   spo2Chart = null;
   flowChart = null;
 }
-
+//inputs validation
 function validateInputs(d) {
   const requiredPositive = ["s1", "target", "sMin", "sMax", "T"];
   for (const k of requiredPositive) {
@@ -121,7 +121,7 @@ function validateInputs(d) {
   if (d.sMin >= d.sMax) return "Safe Min must be < Safe Max ❌";
   return null;
 }
-
+//requests for backend/ what will appear while running
 async function runSimulation() {
   const data = readInputs();
 
@@ -170,7 +170,7 @@ function formatCost(cost) {
   if (typeof cost === "number" && Number.isFinite(cost)) return cost.toFixed(2);
   return String(cost ?? "—");
 }
-
+//plan table:time step-by step summary of the optimal oxygen therapy plan computed by our dp.
 function renderPlanTable(spo2, flows) {
   const tbody = qs("#planTable tbody");
   if (!tbody) return;
@@ -193,7 +193,7 @@ function renderPlanTable(spo2, flows) {
     tbody.appendChild(tr);
   }
 }
-
+//the dp table construction - it varies based on the iputs so we used infinity for the outer cases
 function renderDpTable(dp, T) {
   const thead = qs("#dpTable thead");
   const tbody = qs("#dpTable tbody");
@@ -238,7 +238,7 @@ function renderDpTable(dp, T) {
     tbody.appendChild(tr);
   }
 }
-
+// here we'll map the graph of spo2 and flows
 function renderCharts(spo2, flows, target, sMin, sMax) {
   destroyCharts();
 
