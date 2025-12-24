@@ -40,6 +40,13 @@ def next_spo2(s: int, flow: int, alpha: float) -> int:
 
 def step_cost(spo2: int, target: int, flow: int, prev_flow: Optional[int],
               lam: float, s_min: int, s_max: int) -> float:
+    """
+    Cost function for one time step.
+    Penalizes:
+    - deviation from target SpO2
+    - large changes in oxygen flow
+    - unsafe SpO2 values
+    """
     deviation = (spo2 - target) ** 2
     smoothness = 0.0 if prev_flow is None else lam * abs(flow - prev_flow)
     safety_penalty = 1000.0 if (spo2 < s_min or spo2 > s_max) else 0.0
@@ -68,7 +75,7 @@ def dp_with_table(s1: int, target: int, T: int, lam: float, alpha: float,
                   s_min: int, s_max: int) -> Tuple[List[int], List[int], List[List[float]], List[int], List[int]]:
     """
     Returns:
-      flows: length T-1
+      flows: length T-1 
       spo2_path: length T
       cost_table: S x T
       states: length S
@@ -103,7 +110,7 @@ def dp_with_table(s1: int, target: int, T: int, lam: float, alpha: float,
                     cost_table[r_new][t] = new_cost
                     parent[r_new][t] = (r_prev, flow)
 
-    last_row = min(range(S), key=lambda r: cost_table[r][T - 1])
+    last_row = min(range(S), key=lambda r: cost_table[r][T - 1])  # Choose best final state
 
     # Backtrack
     best_rows = [last_row]

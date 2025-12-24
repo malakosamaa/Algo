@@ -1,3 +1,5 @@
+In powershell: Run "pip install flask flask-cors"
+
 To Run Backend:
 1-Open Terminal
 2-Type command: "cd Backend"
